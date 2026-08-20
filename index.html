@@ -2,87 +2,198 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --background: #ffffff;
+    --foreground: #09090b;
+    --card: #ffffff;
+    --card-border: #e4e4e7;
+    --muted: #71717a;
+    --muted-bg: #f4f4f5;
+    --primary: #18181b;
+    --primary-fg: #fafafa;
+    --accent: #f4f4f5;
+    --accent-fg: #18181b;
+    --border: #e4e4e7;
+    --input-border: #d4d4d8;
+    --ring: #a1a1aa;
+    --radius: 8px;
+    --court1: #2563eb;
+    --court2: #d97706;
+    --success: #16a34a;
+  }
   * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #f4f3ef;
-    color: #1a1a1a;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--muted-bg);
+    color: var(--foreground);
     margin: 0;
-    padding: 24px;
+    padding: 16px;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
-  .sub { color: #6b6a65; font-size: 14px; margin: 0 0 24px; }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  header { margin-bottom: 20px; padding: 4px 4px 0; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0; }
+
   .card {
-    background: white;
-    border: 1px solid #e5e3dc;
+    background: var(--card);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
-  h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
-  .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  h2 { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+  label { font-size: 13px; color: var(--foreground); }
+
+  .field-label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+  .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  @media (max-width: 480px) { .players-grid { grid-template-columns: 1fr; } }
+
   input[type=text], select, input[type=number] {
-    width: 100%; padding: 8px 10px; border: 1px solid #d8d6cd; border-radius: 8px;
-    font-size: 14px; background: #fbfaf7;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--card);
+    color: var(--foreground);
+    transition: box-shadow 0.15s, border-color 0.15s;
   }
-  .mode-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
-  .mode-row label { font-size: 13px; color: #4a4944; }
+  input[type=text]:focus, select:focus, input[type=number]:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgba(161,161,170,0.25);
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+  .option-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .option {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .option:hover { background: var(--muted-bg); }
+  .option input[type=radio] {
+    margin-top: 2px; accent-color: var(--primary); width: 15px; height: 15px; flex-shrink: 0;
+  }
+  .option-text { display: flex; flex-direction: column; gap: 1px; }
+  .option-title { font-size: 13px; font-weight: 500; }
+  .option-desc { font-size: 12px; color: var(--muted); }
+
+  .rounds-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .rounds-row select { width: 90px; }
+  .rounds-hint { font-size: 12px; color: var(--muted); }
+
   button {
-    background: #d97757; color: white; border: none; border-radius: 8px;
-    padding: 10px 18px; font-size: 14px; font-weight: 500; cursor: pointer;
+    background: var(--primary);
+    color: var(--primary-fg);
+    border: none;
+    border-radius: var(--radius);
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.15s;
   }
-  button:hover { opacity: 0.92; }
-  button.secondary { background: white; color: #1a1a1a; border: 1px solid #d8d6cd; }
-  .round { border: 1px solid #e5e3dc; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
-  .round-title { font-size: 13px; font-weight: 600; color: #6b6a65; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+  button:hover { opacity: 0.88; }
+  button.secondary { background: var(--card); color: var(--foreground); border: 1px solid var(--input-border); }
+  button.secondary:hover { background: var(--muted-bg); opacity: 1; }
+  button.full { width: 100%; }
+
+  .badge {
+    display: inline-flex; align-items: center; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-amber { background: #fef3c7; color: #b45309; }
+
+  .round { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; background: var(--card); }
+  .round-title { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+
   .courts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 560px) { .courts { grid-template-columns: 1fr; } }
-  .court { background: #fbfaf7; border-radius: 8px; padding: 12px; }
-  .court-label { font-size: 12px; font-weight: 600; color: #d97757; margin-bottom: 8px; }
-  .team-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-  .team-names { font-size: 13px; }
-  .vs { font-size: 11px; color: #999; text-align: center; margin: 4px 0; }
-  .score-input { width: 48px; text-align: center; padding: 6px 4px; }
+
+  .court { background: var(--muted-bg); border-radius: var(--radius); padding: 12px; border: 1px solid var(--border); }
+  .court-label { margin-bottom: 10px; }
+
+  .team-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .team-names { font-size: 13px; font-weight: 500; line-height: 1.4; }
+  .vs { font-size: 10px; color: var(--muted); text-align: center; margin: 4px 0; font-weight: 600; letter-spacing: 0.04em; }
+  .score-input { width: 52px; text-align: center; padding: 6px 4px; flex-shrink: 0; }
+
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eeece5; }
-  th { color: #6b6a65; font-weight: 500; font-size: 12px; }
-  .warn { color: #b3541e; font-size: 12px; margin-top: 8px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr:last-child td { border-bottom: none; }
+  .table-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+
+  .note { font-size: 12px; padding: 10px 12px; border-radius: var(--radius); margin-bottom: 14px; }
+  .note-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+  .note-warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
   .hidden { display: none; }
-  .footer-actions { display: flex; gap: 10px; margin-top: 8px; }
+  .footer-actions { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Badminton tournament — 8 players</h1>
-  <p class="sub">2 courts, doubles, everyone plays every round.</p>
+  <header>
+    <h1>Badminton tournament</h1>
+    <p class="sub">8 players · 2 courts · doubles</p>
+  </header>
 
   <div class="card" id="setupCard">
     <h2>Players</h2>
     <div class="players-grid" id="playerInputs"></div>
 
+    <hr class="divider">
+
     <h2>Format</h2>
-    <div class="mode-row">
-      <label><input type="radio" name="mode" value="roundrobin" checked> Round robin (fair, no repeat partners)</label>
-    </div>
-    <div class="mode-row">
-      <label><input type="radio" name="mode" value="random"> Random draw each round</label>
-    </div>
-    <div class="mode-row">
-      <label for="numRounds">Rounds:</label>
-      <select id="numRounds" style="width:80px"></select>
-      <span id="roundsHint" style="font-size:12px;color:#999;"></span>
+    <div class="option-group">
+      <label class="option">
+        <input type="radio" name="mode" value="roundrobin" checked>
+        <span class="option-text">
+          <span class="option-title">Round robin</span>
+          <span class="option-desc">Fair rotation — no repeat doubles partners, everyone faces everyone</span>
+        </span>
+      </label>
+      <label class="option">
+        <input type="radio" name="mode" value="random">
+        <span class="option-text">
+          <span class="option-title">Random draw</span>
+          <span class="option-desc">Fresh shuffle every round, no fairness guarantee</span>
+        </span>
+      </label>
     </div>
 
-    <button onclick="generateSchedule()">Generate schedule</button>
+    <div class="rounds-row">
+      <label for="numRounds" class="field-label" style="margin-bottom:0;">Rounds</label>
+      <select id="numRounds"></select>
+      <span id="roundsHint" class="rounds-hint"></span>
+    </div>
+
+    <button class="full" onclick="generateSchedule()">Generate schedule</button>
   </div>
 
   <div id="scheduleArea"></div>
 
   <div class="card hidden" id="standingsCard">
     <h2>Standings</h2>
-    <table id="standingsTable"></table>
+    <div class="table-scroll">
+      <table id="standingsTable"></table>
+    </div>
   </div>
 </div>
 
@@ -90,9 +201,11 @@
 const defaultNames = ["Player 1","Player 2","Player 3","Player 4","Player 5","Player 6","Player 7","Player 8"];
 const playerInputsEl = document.getElementById('playerInputs');
 defaultNames.forEach((n,i) => {
+  const wrap = document.createElement('div');
   const inp = document.createElement('input');
   inp.type = 'text'; inp.value = n; inp.id = 'p'+i;
-  playerInputsEl.appendChild(inp);
+  wrap.appendChild(inp);
+  playerInputsEl.appendChild(wrap);
 });
 
 const modeRadios = document.getElementsByName('mode');
@@ -111,7 +224,7 @@ function updateRoundsOptions() {
   });
   roundsHint.textContent = mode === 'roundrobin'
     ? '7 rounds covers all 28 possible pairings'
-    : 'no fairness guarantee — pure random each round';
+    : 'pure random each round';
 }
 [...modeRadios].forEach(r => r.addEventListener('change', updateRoundsOptions));
 updateRoundsOptions();
@@ -204,8 +317,8 @@ function renderSchedule(coveragePct) {
   area.innerHTML = '';
 
   if (coveragePct !== null) {
-    const note = document.createElement('p');
-    note.className = coveragePct >= 100 ? 'sub' : 'warn';
+    const note = document.createElement('div');
+    note.className = coveragePct >= 100 ? 'note note-success' : 'note note-warn';
     note.textContent = coveragePct >= 100
       ? 'Every player faces every other player at least once across this schedule.'
       : coveragePct + '% of all possible opponent pairings are covered — add more rounds for full coverage.';
@@ -218,21 +331,21 @@ function renderSchedule(coveragePct) {
     div.innerHTML = `
       <div class="round-title">Round ${ri+1}</div>
       <div class="courts">
-        ${renderCourt(round, 'court1', 'Court 1', ri)}
-        ${renderCourt(round, 'court2', 'Court 2', ri)}
+        ${renderCourt(round, 'court1', 'Court 1', 'badge-blue', ri)}
+        ${renderCourt(round, 'court2', 'Court 2', 'badge-amber', ri)}
       </div>
     `;
     area.appendChild(div);
   });
 }
 
-function renderCourt(round, key, label, ri) {
+function renderCourt(round, key, label, badgeClass, ri) {
   const m = round[key];
   const teamAName = m.teamA.map(i => players[i]).join(' & ');
   const teamBName = m.teamB.map(i => players[i]).join(' & ');
   return `
     <div class="court">
-      <div class="court-label">${label}</div>
+      <div class="court-label"><span class="badge ${badgeClass}">${label}</span></div>
       <div class="team-row">
         <span class="team-names">${teamAName}</span>
         <input type="number" min="0" class="score-input" value="${round.scores[key][0]}"
