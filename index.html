@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f4f3ef;
+    color: #1a1a1a;
+    margin: 0;
+    padding: 24px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: #6b6a65; font-size: 14px; margin: 0 0 24px; }
+  .card {
+    background: white;
+    border: 1px solid #e5e3dc;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
+  .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  input[type=text], select, input[type=number] {
+    width: 100%; padding: 8px 10px; border: 1px solid #d8d6cd; border-radius: 8px;
+    font-size: 14px; background: #fbfaf7;
+  }
+  .mode-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+  .mode-row label { font-size: 13px; color: #4a4944; }
+  button {
+    background: #d97757; color: white; border: none; border-radius: 8px;
+    padding: 10px 18px; font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  button:hover { opacity: 0.92; }
+  button.secondary { background: white; color: #1a1a1a; border: 1px solid #d8d6cd; }
+  .round { border: 1px solid #e5e3dc; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .round-title { font-size: 13px; font-weight: 600; color: #6b6a65; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .courts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .courts { grid-template-columns: 1fr; } }
+  .court { background: #fbfaf7; border-radius: 8px; padding: 12px; }
+  .court-label { font-size: 12px; font-weight: 600; color: #d97757; margin-bottom: 8px; }
+  .team-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .team-names { font-size: 13px; }
+  .vs { font-size: 11px; color: #999; text-align: center; margin: 4px 0; }
+  .score-input { width: 48px; text-align: center; padding: 6px 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eeece5; }
+  th { color: #6b6a65; font-weight: 500; font-size: 12px; }
+  .warn { color: #b3541e; font-size: 12px; margin-top: 8px; }
+  .hidden { display: none; }
+  .footer-actions { display: flex; gap: 10px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Badminton tournament — 8 players</h1>
+  <p class="sub">2 courts, doubles, everyone plays every round.</p>
+
+  <div class="card" id="setupCard">
+    <h2>Players</h2>
+    <div class="players-grid" id="playerInputs"></div>
+
+    <h2>Format</h2>
+    <div class="mode-row">
+      <label><input type="radio" name="mode" value="roundrobin" checked> Round robin (fair, no repeat partners)</label>
+    </div>
+    <div class="mode-row">
+      <label><input type="radio" name="mode" value="random"> Random draw each round</label>
+    </div>
+    <div class="mode-row">
+      <label for="numRounds">Rounds:</label>
+      <select id="numRounds" style="width:80px"></select>
+      <span id="roundsHint" style="font-size:12px;color:#999;"></span>
+    </div>
+
+    <button onclick="generateSchedule()">Generate schedule</button>
+  </div>
+
+  <div id="scheduleArea"></div>
+
+  <div class="card hidden" id="standingsCard">
+    <h2>Standings</h2>
+    <table id="standingsTable"></table>
+  </div>
+</div>
+
+<script>
+const defaultNames = ["Player 1","Player 2","Player 3","Player 4","Player 5","Player 6","Player 7","Player 8"];
+const playerInputsEl = document.getElementById('playerInputs');
+defaultNames.forEach((n,i) => {
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.value = n; inp.id = 'p'+i;
+  playerInputsEl.appendChild(inp);
+});
+
+const modeRadios = document.getElementsByName('mode');
+const numRoundsSel = document.getElementById('numRounds');
+const roundsHint = document.getElementById('roundsHint');
+
+function updateRoundsOptions() {
+  const mode = getMode();
+  numRoundsSel.innerHTML = '';
+  const opts = mode === 'roundrobin' ? [5,6,7,8] : [2,3,4,5];
+  opts.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    if (v === (mode === 'roundrobin' ? 7 : 3)) o.selected = true;
+    numRoundsSel.appendChild(o);
+  });
+  roundsHint.textContent = mode === 'roundrobin'
+    ? '7 rounds covers all 28 possible pairings'
+    : 'no fairness guarantee — pure random each round';
+}
+[...modeRadios].forEach(r => r.addEventListener('change', updateRoundsOptions));
+updateRoundsOptions();
+
+function getMode() {
+  return [...modeRadios].find(r => r.checked).value;
+}
+
+function pairKey(a,b) { return a < b ? a+'_'+b : b+'_'+a; }
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function bestSplit(group, partners, opponents) {
+  const [a,b,c,d] = group;
+  const options = [
+    {teamA:[a,b], teamB:[c,d]},
+    {teamA:[a,c], teamB:[b,d]},
+    {teamA:[a,d], teamB:[b,c]},
+  ];
+  let best = null, bestScore = -Infinity;
+  for (const opt of options) {
+    let score = 0;
+    const pA = pairKey(opt.teamA[0], opt.teamA[1]);
+    const pB = pairKey(opt.teamB[0], opt.teamB[1]);
+    if (partners.has(pA)) score -= 10;
+    if (partners.has(pB)) score -= 10;
+    for (const x of opt.teamA) for (const y of opt.teamB) {
+      if (!opponents.has(pairKey(x,y))) score += 1;
+    }
+    score += Math.random() * 0.01;
+    if (score > bestScore) { bestScore = score; best = opt; }
+  }
+  return best;
+}
+
+function recordMatch(match, partners, opponents) {
+  partners.add(pairKey(match.teamA[0], match.teamA[1]));
+  partners.add(pairKey(match.teamB[0], match.teamB[1]));
+  for (const x of match.teamA) for (const y of match.teamB) opponents.add(pairKey(x,y));
+}
+
+let schedule = [];
+let players = [];
+
+function generateSchedule() {
+  players = defaultNames.map((_,i) => document.getElementById('p'+i).value.trim() || defaultNames[i]);
+  const mode = getMode();
+  const rounds = parseInt(numRoundsSel.value, 10);
+  const n = players.length;
+  const partners = new Set();
+  const opponents = new Set();
+  schedule = [];
+
+  for (let r = 0; r < rounds; r++) {
+    const idx = shuffle([...Array(n).keys()]);
+    const groupA = idx.slice(0,4);
+    const groupB = idx.slice(4,8);
+    let matchA, matchB;
+    if (mode === 'roundrobin') {
+      matchA = bestSplit(groupA, partners, opponents);
+      matchB = bestSplit(groupB, partners, opponents);
+      recordMatch(matchA, partners, opponents);
+      recordMatch(matchB, partners, opponents);
+    } else {
+      const [a,b,c,d] = groupA;
+      matchA = {teamA:[a,b], teamB:[c,d]};
+      const [e,f,g,h] = groupB;
+      matchB = {teamA:[e,f], teamB:[g,h]};
+    }
+    schedule.push({court1: matchA, court2: matchB, scores: {court1:['',''], court2:['','']}});
+  }
+
+  const totalPairs = n*(n-1)/2;
+  const coveragePct = Math.round((opponents.size / totalPairs) * 100);
+
+  renderSchedule(mode === 'roundrobin' ? coveragePct : null);
+  renderStandings();
+  document.getElementById('standingsCard').classList.remove('hidden');
+}
+
+function renderSchedule(coveragePct) {
+  const area = document.getElementById('scheduleArea');
+  area.innerHTML = '';
+
+  if (coveragePct !== null) {
+    const note = document.createElement('p');
+    note.className = coveragePct >= 100 ? 'sub' : 'warn';
+    note.textContent = coveragePct >= 100
+      ? 'Every player faces every other player at least once across this schedule.'
+      : coveragePct + '% of all possible opponent pairings are covered — add more rounds for full coverage.';
+    area.appendChild(note);
+  }
+
+  schedule.forEach((round, ri) => {
+    const div = document.createElement('div');
+    div.className = 'round';
+    div.innerHTML = `
+      <div class="round-title">Round ${ri+1}</div>
+      <div class="courts">
+        ${renderCourt(round, 'court1', 'Court 1', ri)}
+        ${renderCourt(round, 'court2', 'Court 2', ri)}
+      </div>
+    `;
+    area.appendChild(div);
+  });
+}
+
+function renderCourt(round, key, label, ri) {
+  const m = round[key];
+  const teamAName = m.teamA.map(i => players[i]).join(' & ');
+  const teamBName = m.teamB.map(i => players[i]).join(' & ');
+  return `
+    <div class="court">
+      <div class="court-label">${label}</div>
+      <div class="team-row">
+        <span class="team-names">${teamAName}</span>
+        <input type="number" min="0" class="score-input" value="${round.scores[key][0]}"
+          onchange="updateScore(${ri}, '${key}', 0, this.value)">
+      </div>
+      <div class="vs">vs</div>
+      <div class="team-row">
+        <span class="team-names">${teamBName}</span>
+        <input type="number" min="0" class="score-input" value="${round.scores[key][1]}"
+          onchange="updateScore(${ri}, '${key}', 1, this.value)">
+      </div>
+    </div>
+  `;
+}
+
+function updateScore(roundIdx, courtKey, teamIdx, value) {
+  schedule[roundIdx].scores[courtKey][teamIdx] = value;
+  renderStandings();
+}
+
+function renderStandings() {
+  const stats = {};
+  players.forEach((name, i) => { stats[i] = {name, played:0, won:0, lost:0, pf:0, pa:0}; });
+
+  schedule.forEach(round => {
+    ['court1','court2'].forEach(key => {
+      const m = round[key];
+      const [sa, sb] = round.scores[key].map(v => v === '' ? null : parseInt(v,10));
+      if (sa === null || sb === null || isNaN(sa) || isNaN(sb)) return;
+      m.teamA.forEach(i => { stats[i].played++; stats[i].pf += sa; stats[i].pa += sb; if (sa>sb) stats[i].won++; else if (sb>sa) stats[i].lost++; });
+      m.teamB.forEach(i => { stats[i].played++; stats[i].pf += sb; stats[i].pa += sa; if (sb>sa) stats[i].won++; else if (sa>sb) stats[i].lost++; });
+    });
+  });
+
+  const rows = Object.values(stats).sort((a,b) => b.won - a.won || (b.pf-b.pa) - (a.pf-a.pa));
+  const table = document.getElementById('standingsTable');
+  table.innerHTML = `
+    <tr><th>Player</th><th>Played</th><th>Won</th><th>Lost</th><th>Pts for</th><th>Pts against</th><th>Diff</th></tr>
+    ${rows.map(r => `<tr><td>${r.name}</td><td>${r.played}</td><td>${r.won}</td><td>${r.lost}</td><td>${r.pf}</td><td>${r.pa}</td><td>${r.pf-r.pa}</td></tr>`).join('')}
+  `;
+}
+</script>
+</body>
+</html>
